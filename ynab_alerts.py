@@ -90,13 +90,8 @@ class Stats:
     overspent: list = field(default_factory=list)  # [{"id", "name", "over"}], worst first
 
 
-def overspent_categories(groups, rule="available"):
-    """Categories that are over budget this month.
-
-    rule="available": the category's Available balance is negative (YNAB's red
-                      "overspent"; accounts for money carried over from prior months).
-    rule="assigned":  this month's spending exceeds this month's assigned amount.
-    """
+def overspent_categories(groups):
+    """Categories whose Available balance is negative (YNAB's red "overspent")."""
     result = []
     for group in groups:
         if group.get("hidden") or group.get("deleted") or group["name"] in SKIP_GROUPS:
@@ -104,23 +99,20 @@ def overspent_categories(groups, rule="available"):
         for cat in group["categories"]:
             if cat.get("hidden") or cat.get("deleted"):
                 continue
-            if rule == "assigned":
-                over = -cat["activity"] - cat["budgeted"]
-            else:
-                over = -cat["balance"]
+            over = -cat["balance"]
             if over > 0:
                 result.append({"id": cat["id"], "name": cat["name"], "over": over})
     return sorted(result, key=lambda c: -c["over"])
 
 
-def collect_stats(ynab, rule, today, lookback_days):
+def collect_stats(ynab, today, lookback_days):
     since = (today - timedelta(days=lookback_days)).isoformat()
     recent = ynab.transactions(since_date=since)
     return Stats(
         pending=sum(1 for t in recent if t["cleared"] == "uncleared"),
         unapproved=len(ynab.transactions(type="unapproved")),
         uncategorized=len(ynab.transactions(type="uncategorized")),
-        overspent=overspent_categories(ynab.category_groups(), rule),
+        overspent=overspent_categories(ynab.category_groups()),
     )
 
 
@@ -255,7 +247,7 @@ def main(argv=None):
         sys.exit("No notification channel configured: set NTFY_TOPIC and/or TWILIO_* variables.")
 
     ynab = YNAB(require_env("YNAB_TOKEN"), env("YNAB_BUDGET_ID", "last-used"))
-    stats = collect_stats(ynab, env("OVERSPEND_RULE", "available"), now.date(), int(env("PENDING_LOOKBACK_DAYS", "30")))
+    stats = collect_stats(ynab, now.date(), int(env("PENDING_LOOKBACK_DAYS", "7")))
 
     state_path = Path(env("STATE_FILE", ".state/state.json"))
     messages, new_state = plan(now, load_state(state_path), stats, summary_hour, args.force_summary)

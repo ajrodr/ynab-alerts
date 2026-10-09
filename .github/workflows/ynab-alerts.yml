@@ -52,7 +52,6 @@ jobs:
           TWILIO_TO: ${{ secrets.TWILIO_TO }}
           TIMEZONE: ${{ vars.TIMEZONE }}
           SUMMARY_HOUR: ${{ vars.SUMMARY_HOUR }}
-          OVERSPEND_RULE: ${{ vars.OVERSPEND_RULE }}
           PENDING_LOOKBACK_DAYS: ${{ vars.PENDING_LOOKBACK_DAYS }}
 
       - uses: actions/cache/save@v4

@@ -20,7 +20,7 @@ Gas: over by $12.40
 
 | Line | Meaning |
 |---|---|
-| Pending | Uncleared transactions from the last 30 days (usually bank-pending charges) |
+| Pending | Uncleared transactions from the last 7 days (usually bank-pending charges) |
 | Need approval | Imported transactions you haven't approved yet in YNAB |
 | Uncategorized | Transactions with no category |
 | Over budget | Categories with a negative Available balance (YNAB's red), worst first |
@@ -77,8 +77,7 @@ Optional settings go under **Variables**:
 |---|---|---|
 | `SUMMARY_HOUR` | `7` | Hour for the daily summary |
 | `TIMEZONE` | `America/Chicago` | Handles CST/CDT automatically |
-| `OVERSPEND_RULE` | `available` | `available` = YNAB's red (Available < 0). `assigned` = this month's spending > this month's assigned amount (also flags categories you're intentionally drawing down from savings, like annual insurance) |
-| `PENDING_LOOKBACK_DAYS` | `30` | How far back to count uncleared transactions |
+| `PENDING_LOOKBACK_DAYS` | `7` | How far back to count uncleared transactions |
 
 ### 5. Test it
 The workflow must be on the repo's **default branch** (`main`) before GitHub will run it on a

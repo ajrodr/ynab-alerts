@@ -19,8 +19,6 @@ GROUPS = [
     {"name": "Everyday", "categories": [
         cat("dining", "Dining Out", budgeted=100_000, activity=-142_100, balance=-42_100),
         cat("groceries", "Groceries", budgeted=500_000, activity=-300_000, balance=200_000),
-        # Spent more than assigned this month, but carryover keeps it positive.
-        cat("insurance", "Car Insurance", budgeted=100_000, activity=-600_000, balance=50_000),
         cat("old", "Old", balance=-5_000, hidden=True),
     ]},
     {"name": "Credit Card Payments", "categories": [cat("visa", "Visa", balance=-1_000)]},
@@ -33,13 +31,9 @@ def stats(*overspent_ids):
 
 
 class OverspentTests(unittest.TestCase):
-    def test_available_rule_uses_balance(self):
-        result = ya.overspent_categories(GROUPS, "available")
+    def test_negative_available_skipping_hidden_and_credit_cards(self):
+        result = ya.overspent_categories(GROUPS)
         self.assertEqual([(c["id"], c["over"]) for c in result], [("dining", 42_100)])
-
-    def test_assigned_rule_compares_spending_to_assigned(self):
-        result = ya.overspent_categories(GROUPS, "assigned")
-        self.assertEqual([(c["id"], c["over"]) for c in result], [("insurance", 500_000), ("dining", 42_100)])
 
 
 class MessageTests(unittest.TestCase):
