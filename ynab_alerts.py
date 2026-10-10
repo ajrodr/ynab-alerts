@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Daily YNAB summary and overspending alerts, sent by SMS (Twilio) and/or push (ntfy).
+"""Daily YNAB summary and overspending alerts, sent as push notifications via ntfy.
 
 Meant to run every hour from a scheduler (see .github/workflows/ynab-alerts.yml).
 Each run decides for itself whether anything should be sent:
@@ -15,7 +15,6 @@ Uses only the Python standard library.
 """
 
 import argparse
-import base64
 import json
 import os
 import sys
@@ -28,7 +27,6 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 YNAB_API = "https://api.ynab.com/v1"
-TWILIO_API = "https://api.twilio.com/2010-04-01"
 
 # Category groups that never represent spending.
 SKIP_GROUPS = {"Internal Master Category", "Credit Card Payments", "Hidden Categories"}
@@ -176,7 +174,7 @@ def plan(now, state, stats, summary_hour, force_summary=False):
     return messages, new_state
 
 
-# --- Senders -----------------------------------------------------------------
+# --- Sending -----------------------------------------------------------------
 
 
 def send_ntfy(title, body):
@@ -185,38 +183,6 @@ def send_ntfy(title, body):
     if env("NTFY_TOKEN"):
         headers["Authorization"] = f"Bearer {env('NTFY_TOKEN')}"
     http("POST", f"{server}/{require_env('NTFY_TOPIC')}", headers, body.encode())
-
-
-def send_twilio(title, body):
-    sid = require_env("TWILIO_ACCOUNT_SID")
-    auth = base64.b64encode(f"{sid}:{require_env('TWILIO_AUTH_TOKEN')}".encode()).decode()
-    headers = {"Authorization": f"Basic {auth}", "Content-Type": "application/x-www-form-urlencoded"}
-    for number in require_env("TWILIO_TO").split(","):
-        data = urllib.parse.urlencode({"To": number.strip(), "From": require_env("TWILIO_FROM"), "Body": body})
-        http("POST", f"{TWILIO_API}/Accounts/{sid}/Messages.json", headers, data.encode())
-
-
-def enabled_senders():
-    senders = {}
-    if env("NTFY_TOPIC"):
-        senders["ntfy"] = send_ntfy
-    if env("TWILIO_ACCOUNT_SID"):
-        senders["twilio"] = send_twilio
-    return senders
-
-
-def deliver(messages, senders):
-    """Send every message on every channel. Returns (any_succeeded, errors)."""
-    ok, errors = False, []
-    for title, body in messages:
-        for name, send in senders.items():
-            try:
-                send(title, body)
-                ok = True
-                print(f"Sent via {name}: {title}")
-            except Exception as e:  # keep going so one broken channel doesn't block the other
-                errors.append(f"{name}: {e}")
-    return ok, errors
 
 
 # --- Main --------------------------------------------------------------------
@@ -242,9 +208,8 @@ def main(argv=None):
         print(f"{now:%H:%M} is before {summary_hour}:00; quiet hours, nothing to do.")
         return 0
 
-    senders = enabled_senders()
-    if not senders and not args.dry_run:
-        sys.exit("No notification channel configured: set NTFY_TOPIC and/or TWILIO_* variables.")
+    if not args.dry_run:
+        require_env("NTFY_TOPIC")
 
     ynab = YNAB(require_env("YNAB_TOKEN"), env("YNAB_BUDGET_ID", "last-used"))
     stats = collect_stats(ynab, now.date(), int(env("PENDING_LOOKBACK_DAYS", "7")))
@@ -260,13 +225,13 @@ def main(argv=None):
             print(f"--- {title} ---\n{body}\n")
         return 0
 
-    ok, errors = deliver(messages, senders)
-    if ok:  # if every channel failed, keep the old state so the next run retries
-        state_path.parent.mkdir(parents=True, exist_ok=True)
-        state_path.write_text(json.dumps(new_state))
-    for err in errors:
-        print(f"ERROR {err}", file=sys.stderr)
-    return 1 if errors else 0
+    # If sending fails this raises before the state is saved, so the next run retries.
+    for title, body in messages:
+        send_ntfy(title, body)
+        print(f"Sent: {title}")
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(json.dumps(new_state))
+    return 0
 
 
 if __name__ == "__main__":

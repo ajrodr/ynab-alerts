@@ -90,18 +90,5 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(msgs[0][0], "YNAB daily summary")
 
 
-class DeliverTests(unittest.TestCase):
-    def test_one_failing_channel_does_not_block_the_other(self):
-        sent = []
-
-        def broken(title, body):
-            raise RuntimeError("down")
-
-        ok, errors = ya.deliver([("t", "b")], {"twilio": broken, "ntfy": lambda t, b: sent.append(t)})
-        self.assertTrue(ok)
-        self.assertEqual(sent, ["t"])
-        self.assertEqual(len(errors), 1)
-
-
 if __name__ == "__main__":
     unittest.main()

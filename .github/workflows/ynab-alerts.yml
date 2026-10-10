@@ -46,10 +46,6 @@ jobs:
           YNAB_TOKEN: ${{ secrets.YNAB_TOKEN }}
           YNAB_BUDGET_ID: ${{ secrets.YNAB_BUDGET_ID }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-          TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
-          TWILIO_TO: ${{ secrets.TWILIO_TO }}
           TIMEZONE: ${{ vars.TIMEZONE }}
           SUMMARY_HOUR: ${{ vars.SUMMARY_HOUR }}
           PENDING_LOOKBACK_DAYS: ${{ vars.PENDING_LOOKBACK_DAYS }}
