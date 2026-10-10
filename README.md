@@ -1,7 +1,7 @@
 # YNAB alerts
 
-Daily YNAB summary and over-budget alerts, sent as a **real text (SMS via Twilio)** and/or a
-**free push notification (ntfy)**, run on a schedule by GitHub Actions. No server needed.
+Daily YNAB summary and over-budget alerts, sent as **free push notifications (ntfy)** to both
+phones and run on a schedule by GitHub Actions. No server and no cost.
 
 **7:00 am Central — daily summary**
 ```
@@ -40,22 +40,7 @@ YNAB → **Account Settings → Developer Settings → New Token**. Copy it; it'
    name can read the messages, so treat it like a password.
 3. In the app on **both** phones: **+ → Subscribe to topic →** enter that name.
 
-### 3. Real SMS with Twilio (free trial for testing)
-Because you're on AT&T (which shut down its free email-to-text gateway in 2025), real SMS needs
-a paid sender. The Twilio free trial is enough to test it:
-1. Sign up at twilio.com. The trial includes free credit.
-2. **Verify both phone numbers** (yours and your wife's) under *Phone Numbers → Verified Caller IDs*.
-   A trial account can only text verified numbers.
-3. Get a trial phone number from the console.
-4. Note the **Account SID** and **Auth Token** from the console dashboard.
-
-Trial messages begin with "Sent from your Twilio trial account". To keep using SMS after the
-trial, upgrade, buy a **toll-free number**, and submit Twilio's free *toll-free verification*
-form (it takes a few days; US carriers block unverified senders). The ongoing cost is about
-$2–3/month for one number and roughly 60 texts. If push notifications turn out to be enough,
-just skip this step or remove the Twilio secrets.
-
-### 4. GitHub
+### 3. GitHub
 Keep this repository **private**. Private repos get 2,000 free Actions minutes/month, and this
 job uses about 500.
 
@@ -64,11 +49,7 @@ Under **Settings → Secrets and variables → Actions → Secrets**, add:
 | Secret | Value |
 |---|---|
 | `YNAB_TOKEN` | from step 1 |
-| `NTFY_TOPIC` | from step 2 (leave out to disable push) |
-| `TWILIO_ACCOUNT_SID` | from step 3 (leave out to disable SMS) |
-| `TWILIO_AUTH_TOKEN` | from step 3 |
-| `TWILIO_FROM` | your Twilio number, e.g. `+15125550100` |
-| `TWILIO_TO` | both numbers, comma-separated: `+15125550111,+15125550122` |
+| `NTFY_TOPIC` | from step 2 |
 | `YNAB_BUDGET_ID` | optional; defaults to your last-used budget |
 
 Optional settings go under **Variables**:
@@ -79,17 +60,17 @@ Optional settings go under **Variables**:
 | `TIMEZONE` | `America/Chicago` | Handles CST/CDT automatically |
 | `PENDING_LOOKBACK_DAYS` | `7` | How far back to count uncleared transactions |
 
-### 5. Test it
+### 4. Test it
 The workflow must be on the repo's **default branch** (`main`) before GitHub will run it on a
 schedule or show the *Run workflow* button.
 
 **Actions → YNAB alerts → Run workflow**:
 - Check **dry_run** first to see the message in the log without sending anything.
-- Then run it with only **force_summary** checked. Both phones should get the push and the text.
+- Then run it with only **force_summary** checked. Both phones should get the notification.
 
 ## Running locally
 ```bash
-export YNAB_TOKEN=...      # plus NTFY_TOPIC / TWILIO_* to actually send
+export YNAB_TOKEN=...      # plus NTFY_TOPIC to actually send
 python3 ynab_alerts.py --dry-run --force-summary
 python3 -m unittest discover -s tests
 ```
